@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    
+    <!-- Dynamic PWA Web App Manifest -->
+    <link rel="manifest" id="manifest-placeholder">
+    
+    <title>AL StreamPulse - Physical Science Mark Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        amoled: {
+                            bg: '#000000',
+                            card: '#09090b',
+                            cardHover: '#121215',
+                            border: '#27272a',
+                            input: '#18181b'
+                        },
+                        maths: {
+                            500: '#ef4444',
+                            400: '#f87171',
+                            600: '#dc2626',
+                            glow: 'rgba(239, 68, 68, 0.15)'
+                        },
+                        physics: {
+                            500: '#3b82f6',
+                            400: '#60a5fa',
+                            600: '#2563eb',
+                            glow: 'rgba(59, 130, 246, 0.15)'
+                        },
+                        chemistry: {
+                            500: '#10b981',
+                            400: '#34d399',
+                            600: '#059669',
+                            glow: 'rgba(16, 185, 129, 0.15)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #000000; color: #f4f4f5; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #000000; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+        .tap-highlight-transparent { -webkit-tap-highlight-color: transparent; }
+    </style>
+</head>
+<body class="bg-black text-zinc-100 min-h-screen flex flex-col antialiased selection:bg-zinc-800 selection:text-white pb-24">
+
+    <!-- Navigation Header -->
+    <header class="bg-black/90 backdrop-blur-md border-b border-zinc-800/80 sticky top-0 z-30 shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- App Title -->
+                <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('dashboard')">
+                    <div class="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-white shadow-lg">
+                        <i class="fa-solid fa-square-poll-vertical text-xl text-red-500"></i>
+                    </div>
+                    <h1 class="text-lg sm:text-xl font-black tracking-tight text-white">A/L MarkPulse</h1>
+                </div>
+
+                <!-- Desktop Nav Tabs -->
+                <nav class="hidden md:flex items-center gap-1.5 p-1 bg-zinc-950 rounded-xl border border-zinc-800">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-tab px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-zinc-800 text-white shadow">
+                        <i class="fa-solid fa-chart-pie text-zinc-300"></i> Dashboard
+                    </button>
+                    <button onclick="switchTab('maths')" id="nav-maths" class="nav-tab px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-900">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Combined Maths
+                    </button>
+                    <button onclick="switchTab('physics')" id="nav-physics" class="nav-tab px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-400 hover:text-blue-400 hover:bg-zinc-900">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Physics
+                    </button>
+                    <button onclick="switchTab('chemistry')" id="nav-chemistry" class="nav-tab px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-400 hover:text-emerald-400 hover:bg-zinc-900">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Chemistry
+                    </button>
+                </nav>
+
+                <!-- Clean Right Side (Hidden clutter) -->
+                <div class="flex items-center gap-2">
+                    <button onclick="exportDataJSON()" class="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white text-xs transition" title="Export Backup">
+                        <i class="fa-solid fa-download"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT BODY -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5">
+
+        <!-- ================= TAB 1: FRONT DASHBOARD ================= -->
+        <section id="tab-dashboard" class="tab-content space-y-5">
+
+            <!-- 3 DEDICATED SUBJECT CARDS AT THE TOP (Combined Maths, Physics, Chemistry) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                <!-- Combined Maths Card (RED Accent) -->
+                <div class="bg-zinc-900 border border-red-500/40 rounded-2xl p-4 shadow-xl hover:border-red-500/70 transition cursor-pointer" onclick="switchTab('maths')">
+                    <div class="flex justify-between items-start mb-1">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse"></span>
+                            <h4 class="font-extrabold text-base text-red-400">Combined Maths</h4>
+                        </div>
+                        <span class="text-xs text-zinc-400 font-semibold max-w-[130px] truncate text-right" id="dash-maths-count">0 papers</span>
+                    </div>
+                    <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Last Added Mark</div>
+                    <div class="flex items-baseline justify-between my-1">
+                        <span class="text-2xl font-black text-white" id="dash-maths-avg">0%</span>
+                        <div class="text-right">
+                            <span class="text-xs font-extrabold px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30" id="dash-maths-grade">Grade -</span>
+                            <div class="text-[10px] text-zinc-400 font-bold mt-1" id="dash-maths-best">Highest: -</div>
+                        </div>
+                    </div>
+                    <div class="w-full bg-zinc-800 rounded-full h-2 mt-2">
+                        <div id="dash-maths-bar" class="bg-red-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <!-- Score comparison vs previous paper -->
+                    <div id="dash-maths-delta" class="mt-2.5 pt-2 border-t border-zinc-800/80 flex items-center justify-between"></div>
+                </div>
+
+                <!-- Physics Card (BLUE Accent) -->
+                <div class="bg-zinc-900 border border-blue-500/40 rounded-2xl p-4 shadow-xl hover:border-blue-500/70 transition cursor-pointer" onclick="switchTab('physics')">
+                    <div class="flex justify-between items-start mb-1">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3.5 h-3.5 rounded-full bg-blue-500 animate-pulse"></span>
+                            <h4 class="font-extrabold text-base text-blue-400">Physics</h4>
+                        </div>
+                        <span class="text-xs text-zinc-400 font-semibold max-w-[130px] truncate text-right" id="dash-physics-count">0 papers</span>
+                    </div>
+                    <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Last Added Mark</div>
+                    <div class="flex items-baseline justify-between my-1">
+                        <span class="text-2xl font-black text-white" id="dash-physics-avg">0%</span>
+                        <div class="text-right">
+                            <span class="text-xs font-extrabold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30" id="dash-physics-grade">Grade -</span>
+                            <div class="text-[10px] text-zinc-400 font-bold mt-1" id="dash-physics-best">Highest: -</div>
+                        </div>
+                    </div>
+                    <div class="w-full bg-zinc-800 rounded-full h-2 mt-2">
+                        <div id="dash-physics-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <!-- Score comparison vs previous paper -->
+                    <div id="dash-physics-delta" class="mt-2.5 pt-2 border-t border-zinc-800/80 flex items-center justify-between"></div>
+                </div>
+
+                <!-- Chemistry Card (GREEN Accent) -->
+                <div class="bg-zinc-900 border border-emerald-500/40 rounded-2xl p-4 shadow-xl hover:border-emerald-500/70 transition cursor-pointer" onclick="switchTab('chemistry')">
+                    <div class="flex justify-between items-start mb-1">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <h4 class="font-extrabold text-base text-emerald-400">Chemistry</h4>
+                        </div>
+                        <span class="text-xs text-zinc-400 font-semibold max-w-[130px] truncate text-right" id="dash-chem-count">0 papers</span>
+                    </div>
+                    <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Last Added Mark</div>
+                    <div class="flex items-baseline justify-between my-1">
+                        <span class="text-2xl font-black text-white" id="dash-chem-avg">0%</span>
+                        <div class="text-right">
+                            <span class="text-xs font-extrabold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" id="dash-chem-grade">Grade -</span>
+                            <div class="text-[10px] text-zinc-400 font-bold mt-1" id="dash-chem-best">Highest: -</div>
+                        </div>
+                    </div>
+                    <div class="w-full bg-zinc-800 rounded-full h-2 mt-2">
+                        <div id="dash-chem-bar" class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <!-- Score comparison vs previous paper -->
+                    <div id="dash-chem-delta" class="mt-2.5 pt-2 border-t border-zinc-800/80 flex items-center justify-between"></div>
+                </div>
+
+            </div>
+
+            <!-- STREAM SUMMARY ROW (Strongest, Middle, Weakest, Total Papers) -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                
+                <!-- Highest Scoring Subject -->
+                <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                            <span>Strongest</span>
+                            <i class="fa-solid fa-trophy text-amber-400 text-xs"></i>
+                        </div>
+                        <h3 id="dash-highest-sub-name" class="text-base sm:text-lg font-extrabold text-white truncate">-</h3>
+                        <p id="dash-highest-sub-avg" class="text-xl font-black text-emerald-400 mt-0.5">0.0%</p>
+                    </div>
+                    <p id="dash-highest-sub-best" class="text-[10px] text-zinc-400 mt-1 truncate">Highest: -</p>
+                </div>
+
+                <!-- Middle Scoring Subject -->
+                <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                            <span>Moderate</span>
+                            <i class="fa-solid fa-scale-balanced text-sky-400 text-xs"></i>
+                        </div>
+                        <h3 id="dash-middle-sub-name" class="text-base sm:text-lg font-extrabold text-white truncate">-</h3>
+                        <p id="dash-middle-sub-avg" class="text-xl font-black text-sky-400 mt-0.5">0.0%</p>
+                    </div>
+                    <p id="dash-middle-sub-best" class="text-[10px] text-zinc-400 mt-1 truncate">Highest: -</p>
+                </div>
+
+                <!-- Lowest Scoring Subject -->
+                <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                            <span>Weakest</span>
+                            <i class="fa-solid fa-triangle-exclamation text-rose-400 text-xs"></i>
+                        </div>
+                        <h3 id="dash-lowest-sub-name" class="text-base sm:text-lg font-extrabold text-white truncate">-</h3>
+                        <p id="dash-lowest-sub-avg" class="text-xl font-black text-rose-400 mt-0.5">0.0%</p>
+                    </div>
+                    <p id="dash-lowest-sub-best" class="text-[10px] text-zinc-400 mt-1 truncate">Highest: -</p>
+                </div>
+
+                <!-- Total Papers Logged -->
+                <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                            <span>Total Papers</span>
+                            <i class="fa-solid fa-file-signature text-purple-400 text-xs"></i>
+                        </div>
+                        <h3 id="dash-total-papers" class="text-xl font-black text-white">0</h3>
+                    </div>
+                    <p class="text-[10px] text-zinc-500 mt-1">Logged exam sittings</p>
+                </div>
+            </div>
+
+            <!-- MAIN CHART: Comparative Progress Across All 3 Subjects -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-2xl">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                    <div>
+                        <h3 class="font-bold text-base sm:text-lg text-white flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-zinc-400"></i> Stream Development Progress
+                        </h3>
+                        <p class="text-xs text-zinc-400">Chronological score trajectory across Maths, Physics, and Chemistry</p>
+                    </div>
+                    <!-- Subject Legend Pill Indicators -->
+                    <div class="flex items-center gap-3 text-xs font-extrabold">
+                        <span class="flex items-center gap-1.5 text-red-400"><span class="w-3 h-3 rounded-full bg-red-500"></span> Maths</span>
+                        <span class="flex items-center gap-1.5 text-blue-400"><span class="w-3 h-3 rounded-full bg-blue-500"></span> Physics</span>
+                        <span class="flex items-center gap-1.5 text-emerald-400"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Chem</span>
+                    </div>
+                </div>
+                <div class="relative w-full h-80 sm:h-[480px]">
+                    <canvas id="dashboardMainChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Dashboard Recent Marks Summary Log -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                <h3 class="font-bold text-base text-white mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-history text-zinc-400"></i> Recent Paper Marks Added
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs sm:text-sm text-left">
+                        <thead class="text-[11px] uppercase bg-black text-zinc-400 rounded-lg">
+                            <tr>
+                                <th class="p-3">Subject</th>
+                                <th class="p-3">Paper Title</th>
+                                <th class="p-3">Type</th>
+                                <th class="p-3">Date</th>
+                                <th class="p-3 text-center">Score</th>
+                                <th class="p-3 text-center">Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-recent-tbody" class="divide-y divide-zinc-800">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ================= TAB 2: COMBINED MATHEMATICS (RED THEME) ================= -->
+        <section id="tab-maths" class="tab-content hidden space-y-5">
+            <!-- Header Banner -->
+            <div class="bg-zinc-900 border border-red-500/40 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xl">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-500 text-2xl font-black">
+                        ∑
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-white">Combined Mathematics</h2>
+                        <p class="text-xs text-zinc-400">Pure & Applied Mathematics Paper Logs</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <p class="text-[11px] uppercase text-zinc-400 font-bold">Last Added</p>
+                        <p id="maths-tab-avg" class="text-2xl font-black text-red-400">0.0%</p>
+                        <p id="maths-tab-best" class="text-[10px] font-bold text-zinc-400">Highest: -</p>
+                    </div>
+                    <div class="text-right border-l border-zinc-800 pl-4">
+                        <p class="text-[11px] uppercase text-zinc-400 font-bold">Grade</p>
+                        <span id="maths-tab-grade" class="inline-block text-xs font-black px-2.5 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/40">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Combined Maths Chart -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                <h3 class="font-bold text-sm text-zinc-300 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-red-500"></i> Combined Maths Performance Trajectory
+                </h3>
+                <div class="relative w-full h-80 sm:h-[420px]">
+                    <canvas id="mathsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Paper Marks List for Maths -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                <h3 class="font-bold text-sm text-zinc-300 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-red-400"></i> Maths Paper Records
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs sm:text-sm text-left">
+                        <thead class="text-[11px] uppercase bg-black text-zinc-400">
+                            <tr>
+                                <th class="p-3">Paper Title</th>
+                                <th class="p-3">Type</th>
+                                <th class="p-3">Date</th>
+                                <th class="p-3 text-center">Marks</th>
+                                <th class="p-3 text-center">%</th>
+                                <th class="p-3 text-center">Grade</th>
+                                <th class="p-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="maths-list-tbody" class="divide-y divide-zinc-800">
+                            <!-- Populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BOTTOM MARKS ADDER FOR COMBINED MATHS -->
+            <div class="bg-zinc-900 border-2 border-red-500/50 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-3">
+                <div class="flex items-center gap-2 text-red-400 font-extrabold text-sm uppercase tracking-wide">
+                    <i class="fa-solid fa-plus-circle text-base"></i> Add Combined Maths Paper Mark
+                </div>
+                <form onsubmit="handleAddMarks(event, 'Combined Mathematics')" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-zinc-400 mb-1">Paper Name</label>
+                        <input type="text" id="maths-input-title" required placeholder="e.g. 2024 Past Paper, Term Test 1" class="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-red-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-zinc-400 mb-1">Paper Type</label>
+                        <select id="maths-input-type" class="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-red-500">
+                            <option value="Paper 1 (Pure)">Paper 1 (Pure)</option>
+                            <option value="Paper 2 (Applied)">Paper 2 (Applied)</option>
+                            <option value="Full Paper (Combined)">Full Paper (Combined)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-zinc-400 mb-1">Marks (out of 100)</label>
+                        <input type="number" min="0" max="100" step="0.5" id="maths-input-score" required placeholder="e.g. 78" class="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-red-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-zinc-400 mb-1">Sitting Date</label>
+                        <input type="date" id="maths-input-date" required class="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-red-500">
+                    </div>
+                    <div class="sm:col-span-2 lg:col-span-1 flex items-end">
+                        <button type="submit" class="w-full py-2 px-4 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-check"></i> Add Maths Mark
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: PHYSICS (BLUE THEME) ================= -->
+        <section id="tab-physics" class="tab-content hidden space-y-5">
+            <!-- Header Banner -->
+            <div class="bg-zinc-900 border border-blue-500/40 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xl">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-500 text-2xl font-black">
+                        <i class="fa-solid fa-atom"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-white">Physics</h2>
+                        <p class="text-xs text-zinc-400">Mechanics, Waves, Thermal & Electronics Logs</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <p class="text-[11px] uppercase text-zinc-400 font-bold">Last Added</p>
+                        <p id="physics-tab-avg" class="text-2xl font-black text-blue-400">0.0%</p>
+                        <p id="physics-tab-best" class="text-[10px] font-bold text-zinc-400">Highest: -</p>
+                    </div>
+                    <div class="text-right border-l border-zinc-800 pl-4">
+                        <p class="text-[11px] uppercase text-zinc-400 font-bold">Grade</p>
+                        <span id="physics-tab-grade" class="inline-block text-xs font-black px-2.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Physics Chart -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                <h3 class="font-bold text-sm text-zinc-300 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-blue-500"></i> Physics Performance Trajectory
+                </h3>
+                <div class="relative w-full h-80 sm:h-[420px]">
+                    <canvas id="physicsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Paper Marks List for Physics -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                <h3 class="font-bold text-sm text-zinc-300 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-blue-400"></i> Physics Paper Records
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs sm:text-sm text-left">
+                        <thead class="text-[11px] uppercase bg-black text-zinc-400">
+                            <tr>
+                                <th class="p-3">Paper Title</th>
+                                <th class="p-3">Type</th>
+                                <th class="p-3">Date</th>
+                                <th class="p-3 text-center">Marks</th>
+                                <th class="p-3 text-center">%</th>
+                                <th class="p-3 text-center">Grade</th>
+                                <th class="p-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="physics-list-tbody" class="divide-y divide-zinc-800">
+                            <!-- Populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BOTTOM MARKS ADDER FOR PHYSICS -->
+            <div class="bg-zinc-900 border-2 border-blue-500/50 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-3">
+                <div class="flex items-center gap-2 text-blue-400 font-extrabold text-sm uppercase tracking-wide">
+                    <i class="fa-solid fa-plus-circle text-base"></i> Add Physics Paper Mark
+                </div>
+                <form onsubmit="handleAddMarks(event, 'Physics')" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-zinc-400 mb-1">Paper Name</label>
+                        <input type="text" id="physics-input-title" required placeholder="e.g. 2024 Past Paper, Term Test 1" class="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-zinc-400 mb-1">Paper Type</label>
+                        <select id="physics-input-type" class="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500">
+                            <option value="Paper 1 (MCQ)">Paper 1 (MCQ)</option>
+                            <option value="Paper 2 (Essay/Structured)">Paper 2 (Essay/Structured)</option>
+                            <option value="Full Paper (Combined)">Full Paper (Combined)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-zinc-400 mb-1">Marks (out of 100)</label>
+                        <input type="number" min="0" max="100" step="0.5" id="physics-input-score" required placeholder="e.g. 82" class="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-zinc-400 mb-1">Sitting Date</label>
+                        <input type="date" id="physics-input-date" required class="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="sm:col-span-2 lg:col-span-1 flex items-end">
+                        <button type="submit" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-check"></i> Add Physics Mark
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- ================= TAB 4: CHEMISTRY (GREEN THEME) ================= -->
+        <section id="tab-chemistry" class="tab-content hidden space-y-5">
+            <!-- Header Banner -->
+            <div class="bg-zinc-900 border border-emerald-500/40 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xl">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-500 text-2xl font-black">
+                        <i class="fa-solid fa-flask"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-white">Chemistry</h2>
+                        <p class="text-xs text-zinc-400">Inorganic, Organic & Physical Chemistry Logs</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <p class="text-[11px] uppercase text-zinc-400 font-bold">Last Added</p>
+                        <p id="chemistry-tab-avg" class="text-2xl font-black text-emerald-400">0.0%</p>
+                        <p id="chemistry-tab-best" class="text-[10px] font-bold text-zinc-400">Highest: -</p>
+                    </div>
+                    <div class="text-right border-l border-zinc-800 pl-4">
+                        <p class="text-[11px] uppercase text-zinc-400 font-bold">Grade</p>
+                        <span id="chemistry-tab-grade" class="inline-block text-xs font-black px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chemistry Chart -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                <h3 class="font-bold text-sm text-zinc-300 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-emerald-500"></i> Chemistry Performance Trajectory
+                </h3>
+                <div class="relative w-full h-80 sm:h-[420px]">
+                    <canvas id="chemistryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Paper Marks List for Chemistry -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                <h3 class="font-bold text-sm text-zinc-300 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-emerald-400"></i> Chemistry Paper Records
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs sm:text-sm text-left">
+                        <thead class="text-[11px] uppercase bg-black text-zinc-400">
+                            <tr>
+                                <th class="p-3">Paper Title</th>
+                                <th class="p-3">Type</th>
+                                <th class="p-3">Date</th>
+                                <th class="p-3 text-center">Marks</th>
+                                <th class="p-3 text-center">%</th>
+                                <th class="p-3 text-center">Grade</th>
+                                <th class="p-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="chemistry-list-tbody" class="divide-y divide-zinc-800">
+                            <!-- Populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BOTTOM MARKS ADDER FOR CHEMISTRY -->
+            <div class="bg-zinc-900 border-2 border-emerald-500/50 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-3">
+                <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-sm uppercase tracking-wide">
+                    <i class="fa-solid fa-plus-circle text-base"></i> Add Chemistry Paper Mark
+                </div>
+                <form onsubmit="handleAddMarks(event, 'Chemistry')" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-zinc-400 mb-1">Paper Name</label>
+                        <input type="text" id="chemistry-input-title" required placeholder="e.g. 2024 Past Paper, Term Test 1" class="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-zinc-400 mb-1">Paper Type</label>
+                        <select id="chemistry-input-type" class="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500">
+                            <option value="Paper 1 (MCQ)">Paper 1 (MCQ)</option>
+                            <option value="Paper 2 (Essay/Structured)">Paper 2 (Essay/Structured)</option>
+                            <option value="Full Paper (Combined)">Full Paper (Combined)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-zinc-400 mb-1">Marks (out of 100)</label>
+                        <input type="number" min="0" max="100" step="0.5" id="chemistry-input-score" required placeholder="e.g. 75" class="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-zinc-400 mb-1">Sitting Date</label>
+                        <input type="date" id="chemistry-input-date" required class="w-full px-3 py-2 bg-black border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div class="sm:col-span-2 lg:col-span-1 flex items-end">
+                        <button type="submit" class="w-full py-2 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-check"></i> Add Chem Mark
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="install-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative space-y-4">
+            <button onclick="closeInstallModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 text-xl">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Chrome Installation Guide</h3>
+                    <p class="text-xs text-zinc-400">How to add this app to your Android home screen</p>
+                </div>
+            </div>
+
+            <!-- Chrome Menu Direct Shortcut -->
+            <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-2">
+                <div class="flex items-center justify-between text-xs font-bold text-red-400">
+                    <span><i class="fa-solid fa-ellipsis-vertical mr-1"></i> Option 1: Chrome Menu (Instant)</span>
+                    <span class="px-2 py-0.5 rounded bg-red-500/20 border border-red-500/30 text-[10px]">Works Everywhere</span>
+                </div>
+                <p class="text-xs text-zinc-300">If Chrome is not showing an install prompt automatically:</p>
+                <ol class="text-xs text-zinc-400 space-y-1.5 list-decimal list-inside">
+                    <li>Tap the <strong class="text-white">3 dots menu (⋮)</strong> at the top right corner of Chrome.</li>
+                    <li>Tap <strong class="text-white">"Add to Home screen"</strong> or <strong class="text-white">"Install app"</strong>.</li>
+                    <li>Tap <strong class="text-white">"Add"</strong>. The app icon will appear on your phone home screen!</li>
+                </ol>
+            </div>
+
+            <!-- Why local files don't show install -->
+            <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-2">
+                <div class="flex items-center justify-between text-xs font-bold text-amber-400">
+                    <span><i class="fa-solid fa-triangle-exclamation mr-1"></i> Opening as Local File (`file:///`)?</span>
+                </div>
+                <p class="text-xs text-zinc-400">
+                    Chrome security policy hides automatic app install banners for raw local files. To make it a 100% full native PWA with offline caching:
+                </p>
+                <p class="text-xs text-zinc-300">
+                    Host this single file on <strong class="text-emerald-400">GitHub Pages</strong>, <strong class="text-emerald-400">Netlify</strong>, or <strong class="text-emerald-400">Vercel</strong> (100% free, takes 1 min). Once opened via HTTPS, Chrome will show a direct 1-tap install prompt!
+                </p>
+            </div>
+
+            <button onclick="closeInstallModal()" class="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs rounded-xl transition">
+                Got it
+            </button>
+        </div>
+    </div>
+
+    <!-- Floating Bottom Navigation Dock -->
+    <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-auto max-w-[92vw]">
+        <div class="bg-zinc-950/90 backdrop-blur-2xl border border-zinc-800/90 rounded-3xl p-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.85)] flex items-center justify-center gap-2.5 sm:gap-4 ring-1 ring-white/10">
+            
+            <!-- Dashboard Tile -->
+            <button onclick="switchTab('dashboard')" id="float-nav-dashboard" class="float-tab group relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex flex-col items-center justify-center gap-0.5 shadow-lg shadow-blue-500/30 transition-all duration-300 active:scale-95 opacity-100 scale-110 -translate-y-1 ring-2 ring-white/50">
+                <i class="fa-solid fa-house text-lg sm:text-xl"></i>
+                <span class="text-[10px] font-bold tracking-tight">Home</span>
+            </button>
+
+            <!-- Combined Maths Tile -->
+            <button onclick="switchTab('maths')" id="float-nav-maths" class="float-tab group relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 text-white flex flex-col items-center justify-center gap-0.5 shadow-lg shadow-rose-500/30 transition-all duration-300 active:scale-95 opacity-50 grayscale scale-100">
+                <i class="fa-solid fa-calculator text-lg sm:text-xl"></i>
+                <span class="text-[10px] font-bold tracking-tight">Maths</span>
+            </button>
+
+            <!-- Physics Tile -->
+            <button onclick="switchTab('physics')" id="float-nav-physics" class="float-tab group relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex flex-col items-center justify-center gap-0.5 shadow-lg shadow-cyan-500/30 transition-all duration-300 active:scale-95 opacity-50 grayscale scale-100">
+                <i class="fa-solid fa-atom text-lg sm:text-xl"></i>
+                <span class="text-[10px] font-bold tracking-tight">Physics</span>
+            </button>
+
+            <!-- Chemistry Tile -->
+            <button onclick="switchTab('chemistry')" id="float-nav-chemistry" class="float-tab group relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white flex flex-col items-center justify-center gap-0.5 shadow-lg shadow-emerald-500/30 transition-all duration-300 active:scale-95 opacity-50 grayscale scale-100">
+                <i class="fa-solid fa-flask text-lg sm:text-xl"></i>
+                <span class="text-[10px] font-bold tracking-tight">Chem</span>
+            </button>
+
+        </div>
+    </div>
+
+    <script>
+        let deferredPrompt = null;
+
+        // Register Web Manifest dynamically via Blob URL so Chrome detects PWA status
+        function initPWAManifest() {
+            const manifestData = {
+                name: "A/L StreamPulse Mark Tracker",
+                short_name: "AL MarkPulse",
+                description: "Sri Lanka A/L Physical Science Mark Tracker & Analytics",
+                start_url: "./",
+                display: "standalone",
+                background_color: "#000000",
+                theme_color: "#000000",
+                icons: [
+                    {
+                        src: "https://cdn-icons-png.flaticon.com/512/3426/3426653.png",
+                        sizes: "192x192 512x512",
+                        type: "image/png",
+                        purpose: "any maskable"
+                    }
+                ]
+            };
+            try {
+                const blob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
+                const manifestUrl = URL.createObjectURL(blob);
+                const manifestTag = document.getElementById('manifest-placeholder');
+                if (manifestTag) manifestTag.setAttribute('href', manifestUrl);
+            } catch(e) {
+                console.log('Manifest init error:', e);
+            }
+        }
+
+        // Register Service Worker dynamically
+        function initServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    self.addEventListener('install', (e) => self.skipWaiting());
+                    self.addEventListener('activate', (e) => self.clients.claim());
+                    self.addEventListener('fetch', (e) => {
+                        // Pass through network requests
+                    });
+                `;
+                try {
+                    const blob = new Blob([swCode], { type: 'text/javascript' });
+                    const swUrl = URL.createObjectURL(blob);
+                    navigator.serviceWorker.register(swUrl).catch(err => console.log('SW reg error:', err));
+                } catch(e) {
+                    console.log('SW setup error:', e);
+                }
+            }
+        }
+
+        // Listen for Chrome's native beforeinstallprompt event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installBtn = document.getElementById('native-install-btn');
+            if (installBtn) installBtn.classList.remove('hidden');
+        });
+
+        function triggerNativeInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted PWA installation');
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                openInstallModal();
+            }
+        }
+
+        // Sample Sri Lankan A/L Exam Dataset
+        const DEFAULT_EXAMS = [
+            // Sitting 1
+            { id: '1', subject: 'Combined Mathematics', title: 'Term Test 1 - Pure', type: 'Paper 1 (Pure)', date: '2025-03-10', score: 68 },
+            { id: '2', subject: 'Physics', title: 'Term Test 1 - Mechanics MCQ', type: 'Paper 1 (MCQ)', date: '2025-03-12', score: 62 },
+            { id: '3', subject: 'Chemistry', title: 'Term Test 1 - General Chem', type: 'Paper 1 (MCQ)', date: '2025-03-14', score: 74 },
+
+            // Sitting 2
+            { id: '4', subject: 'Combined Mathematics', title: 'Model Paper 1 - Applied', type: 'Paper 2 (Applied)', date: '2025-05-02', score: 74 },
+            { id: '5', subject: 'Physics', title: 'Model Paper 1 - Waves & Thermal', type: 'Paper 2 (Essay/Structured)', date: '2025-05-05', score: 69 },
+            { id: '6', subject: 'Chemistry', title: 'Model Paper 1 - Organic', type: 'Paper 2 (Essay/Structured)', date: '2025-05-08', score: 80 },
+
+            // Sitting 3
+            { id: '7', subject: 'Combined Mathematics', title: '2021 AL Past Paper', type: 'Full Paper (Combined)', date: '2025-07-15', score: 82 },
+            { id: '8', subject: 'Physics', title: '2021 AL Past Paper', type: 'Full Paper (Combined)', date: '2025-07-18', score: 76 },
+            { id: '9', subject: 'Chemistry', title: '2021 AL Past Paper', type: 'Full Paper (Combined)', date: '2025-07-21', score: 85 },
+
+            // Sitting 4
+            { id: '10', subject: 'Combined Mathematics', title: '2022 AL Past Paper', type: 'Full Paper (Combined)', date: '2025-09-10', score: 88 },
+            { id: '11', subject: 'Physics', title: '2022 AL Past Paper', type: 'Full Paper (Combined)', date: '2025-09-12', score: 81 },
+            { id: '12', subject: 'Chemistry', title: '2022 AL Past Paper', type: 'Full Paper (Combined)', date: '2025-09-15', score: 89 }
+        ];
+
+        let state = {
+            exams: [],
+            activeTab: 'dashboard'
+        };
+
+        // Chart instances
+        let dashboardMainChart = null;
+        let mathsChart = null;
+        let physicsChart = null;
+        let chemistryChart = null;
+
+        // Initialize on load
+        window.onload = function() {
+            initPWAManifest();
+            initServiceWorker();
+            loadState();
+            setDefaultDates();
+            renderAll();
+        };
+
+        function setDefaultDates() {
+            const today = new Date().toISOString().split('T')[0];
+            ['maths', 'physics', 'chemistry'].forEach(sub => {
+                const dateEl = document.getElementById(`${sub}-input-date`);
+                if (dateEl) dateEl.value = today;
+            });
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem('al_amoled_marks_data');
+            if (saved) {
+                try {
+                    state.exams = JSON.parse(saved);
+                } catch(e) {
+                    state.exams = [...DEFAULT_EXAMS];
+                }
+            } else {
+                state.exams = [...DEFAULT_EXAMS];
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('al_amoled_marks_data', JSON.stringify(state.exams));
+        }
+
+        // A/L Grade Calculator
+        function getALGrade(score) {
+            if (score >= 75) return { grade: 'A', class: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' };
+            if (score >= 65) return { grade: 'B', class: 'bg-blue-500/20 text-blue-400 border-blue-500/40' };
+            if (score >= 55) return { grade: 'C', class: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40' };
+            if (score >= 35) return { grade: 'S', class: 'bg-amber-500/20 text-amber-400 border-amber-500/40' };
+            return { grade: 'F', class: 'bg-rose-500/20 text-rose-400 border-rose-500/40' };
+        }
+
+        function switchTab(tabId) {
+            state.activeTab = tabId;
+
+            // Hide all tab sections
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            const activeContent = document.getElementById(`tab-${tabId}`);
+            if (activeContent) activeContent.classList.remove('hidden');
+
+            // List of tabs
+            const allTabs = ['dashboard', 'maths', 'physics', 'chemistry'];
+
+            allTabs.forEach(t => {
+                const floatBtn = document.getElementById(`float-nav-${t}`);
+                const navBtn = document.getElementById(`nav-${t}`);
+
+                if (t === tabId) {
+                    if (floatBtn) {
+                        floatBtn.classList.remove('opacity-50', 'grayscale', 'scale-100');
+                        floatBtn.classList.add('opacity-100', 'scale-110', '-translate-y-1', 'ring-2', 'ring-white/50');
+                    }
+                    if (navBtn) {
+                        navBtn.className = "nav-tab px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-zinc-800 text-white shadow";
+                    }
+                } else {
+                    if (floatBtn) {
+                        floatBtn.classList.add('opacity-50', 'grayscale', 'scale-100');
+                        floatBtn.classList.remove('opacity-100', 'scale-110', '-translate-y-1', 'ring-2', 'ring-white/50');
+                    }
+                    if (navBtn) {
+                        navBtn.className = "nav-tab px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-400 hover:text-white hover:bg-zinc-900";
+                    }
+                }
+            });
+
+            // Trigger re-render of charts when switching tabs
+            renderAll();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function renderAll() {
+            renderDashboard();
+            renderSubjectTab('Combined Mathematics', 'maths');
+            renderSubjectTab('Physics', 'physics');
+            renderSubjectTab('Chemistry', 'chemistry');
+        }
+
+        function calculateSubjectStats(subjectName) {
+            const list = state.exams.filter(e => e.subject === subjectName);
+            if (list.length === 0) {
+                return { 
+                    avg: 0, count: 0, grade: getALGrade(0), 
+                    latestScore: 0, latestTitle: 'No paper', latestGrade: getALGrade(0),
+                    highestScore: 0,
+                    hasPrev: false, prevScore: 0, diff: 0 
+                };
+            }
+            const sum = list.reduce((acc, curr) => acc + Number(curr.score), 0);
+            const avg = Math.round((sum / list.length) * 10) / 10;
+            const sortedByDate = [...list].sort((a, b) => {
+                const dDiff = new Date(b.date) - new Date(a.date);
+                if (dDiff !== 0) return dDiff;
+                return Number(b.id) - Number(a.id);
+            });
+            const latest = sortedByDate[0];
+            const highestScore = Math.max(...list.map(e => Number(e.score)));
+            
+            let hasPrev = false;
+            let prevScore = 0;
+            let diff = 0;
+
+            if (sortedByDate.length > 1) {
+                hasPrev = true;
+                prevScore = Number(sortedByDate[1].score);
+                diff = Math.round((Number(latest.score) - prevScore) * 10) / 10;
+            }
+
+            return {
+                avg,
+                count: list.length,
+                grade: getALGrade(avg),
+                latestScore: Number(latest.score),
+                latestTitle: latest.title,
+                latestGrade: getALGrade(Number(latest.score)),
+                highestScore,
+                hasPrev,
+                prevScore,
+                diff
+            };
+        }
+
+        function renderDashboard() {
+            const mathsStats = calculateSubjectStats('Combined Mathematics');
+            const physicsStats = calculateSubjectStats('Physics');
+            const chemStats = calculateSubjectStats('Chemistry');
+
+            // 1. Snapshot Cards displaying LAST ADDED PAPER MARK & DELTA VS PREVIOUS
+            document.getElementById('dash-maths-avg').textContent = mathsStats.count > 0 ? `${mathsStats.latestScore}%` : '0%';
+            document.getElementById('dash-maths-count').textContent = mathsStats.count > 0 ? mathsStats.latestTitle : 'No papers';
+            document.getElementById('dash-maths-grade').textContent = `Grade ${mathsStats.latestGrade.grade}`;
+            document.getElementById('dash-maths-best').textContent = mathsStats.count > 0 ? `Highest: ${mathsStats.highestScore}%` : 'Highest: -';
+            document.getElementById('dash-maths-bar').style.width = `${Math.min(100, mathsStats.latestScore)}%`;
+            renderDeltaBadge('dash-maths-delta', mathsStats);
+
+            document.getElementById('dash-physics-avg').textContent = physicsStats.count > 0 ? `${physicsStats.latestScore}%` : '0%';
+            document.getElementById('dash-physics-count').textContent = physicsStats.count > 0 ? physicsStats.latestTitle : 'No papers';
+            document.getElementById('dash-physics-grade').textContent = `Grade ${physicsStats.latestGrade.grade}`;
+            document.getElementById('dash-physics-best').textContent = physicsStats.count > 0 ? `Highest: ${physicsStats.highestScore}%` : 'Highest: -';
+            document.getElementById('dash-physics-bar').style.width = `${Math.min(100, physicsStats.latestScore)}%`;
+            renderDeltaBadge('dash-physics-delta', physicsStats);
+
+            document.getElementById('dash-chem-avg').textContent = chemStats.count > 0 ? `${chemStats.latestScore}%` : '0%';
+            document.getElementById('dash-chem-count').textContent = chemStats.count > 0 ? chemStats.latestTitle : 'No papers';
+            document.getElementById('dash-chem-grade').textContent = `Grade ${chemStats.latestGrade.grade}`;
+            document.getElementById('dash-chem-best').textContent = chemStats.count > 0 ? `Highest: ${chemStats.highestScore}%` : 'Highest: -';
+            document.getElementById('dash-chem-bar').style.width = `${Math.min(100, chemStats.latestScore)}%`;
+            renderDeltaBadge('dash-chem-delta', chemStats);
+
+            // 2. Highest, Middle, and Lowest Subject Insights based on LAST ADDED PAPER
+            const subjects = [
+                { name: 'Combined Maths', score: mathsStats.latestScore, best: mathsStats.highestScore, count: mathsStats.count },
+                { name: 'Physics', score: physicsStats.latestScore, best: physicsStats.highestScore, count: physicsStats.count },
+                { name: 'Chemistry', score: chemStats.latestScore, best: chemStats.highestScore, count: chemStats.count }
+            ];
+
+            subjects.sort((a, b) => b.score - a.score);
+
+            const highest = subjects[0];
+            const middle = subjects[1];
+            const lowest = subjects[2];
+
+            document.getElementById('dash-highest-sub-name').textContent = highest.count > 0 ? highest.name : '-';
+            document.getElementById('dash-highest-sub-avg').textContent = highest.count > 0 ? `${highest.score}%` : '0%';
+            document.getElementById('dash-highest-sub-best').textContent = highest.count > 0 ? `Last paper mark • Highest: ${highest.best}%` : 'No papers yet';
+
+            document.getElementById('dash-middle-sub-name').textContent = middle.count > 0 ? middle.name : '-';
+            document.getElementById('dash-middle-sub-avg').textContent = middle.count > 0 ? `${middle.score}%` : '0%';
+            document.getElementById('dash-middle-sub-best').textContent = middle.count > 0 ? `Last paper mark • Highest: ${middle.best}%` : 'No papers yet';
+
+            document.getElementById('dash-lowest-sub-name').textContent = lowest.count > 0 ? lowest.name : '-';
+            document.getElementById('dash-lowest-sub-avg').textContent = lowest.count > 0 ? `${lowest.score}%` : '0%';
+            document.getElementById('dash-lowest-sub-best').textContent = lowest.count > 0 ? `Last paper mark • Highest: ${lowest.best}%` : 'No papers yet';
+
+            // Total Papers
+            const totalPapers = state.exams.length;
+            document.getElementById('dash-total-papers').textContent = totalPapers;
+
+            // Recent Papers Log Table
+            const recentTbody = document.getElementById('dash-recent-tbody');
+            recentTbody.innerHTML = '';
+            const sortedRecent = [...state.exams].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+
+            if (sortedRecent.length === 0) {
+                recentTbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-zinc-500 text-xs">No paper marks logged yet.</td></tr>`;
+            } else {
+                sortedRecent.forEach(ex => {
+                    const grade = getALGrade(ex.score);
+                    let subColor = 'text-red-400';
+                    if (ex.subject === 'Physics') subColor = 'text-blue-400';
+                    if (ex.subject === 'Chemistry') subColor = 'text-emerald-400';
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-zinc-800/50 transition';
+                    tr.innerHTML = `
+                        <td class="p-3 font-bold ${subColor}">${ex.subject}</td>
+                        <td class="p-3 font-medium text-zinc-200">${ex.title}</td>
+                        <td class="p-3 text-zinc-400">${ex.type || 'Standard'}</td>
+                        <td class="p-3 text-zinc-400 text-xs">${ex.date}</td>
+                        <td class="p-3 text-center font-extrabold text-white">${ex.score}/100</td>
+                        <td class="p-3 text-center">
+                            <span class="inline-block text-[10px] font-black px-2 py-0.5 rounded ${grade.class}">${grade.grade}</span>
+                        </td>
+                    `;
+                    recentTbody.appendChild(tr);
+                });
+            }
+
+            // Main Comparative Trajectory Chart
+            renderMainComparativeChart();
+        }
+
+        function renderMainComparativeChart() {
+            const ctx = document.getElementById('dashboardMainChart')?.getContext('2d');
+            if (!ctx) return;
+
+            if (dashboardMainChart) {
+                dashboardMainChart.destroy();
+            }
+
+            const mathsExams = state.exams.filter(e => e.subject === 'Combined Mathematics').sort((a, b) => new Date(a.date) - new Date(b.date));
+            const physicsExams = state.exams.filter(e => e.subject === 'Physics').sort((a, b) => new Date(a.date) - new Date(b.date));
+            const chemExams = state.exams.filter(e => e.subject === 'Chemistry').sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            const maxCount = Math.max(mathsExams.length, physicsExams.length, chemExams.length, 1);
+            const labels = Array.from({ length: maxCount }, (_, i) => `${i + 1}`);
+
+            const mathsScores = labels.map((_, i) => mathsExams[i] ? Number(mathsExams[i].score) : null);
+            const physicsScores = labels.map((_, i) => physicsExams[i] ? Number(physicsExams[i].score) : null);
+            const chemScores = labels.map((_, i) => chemExams[i] ? Number(chemExams[i].score) : null);
+
+            dashboardMainChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Combined Maths',
+                            data: mathsScores,
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#ef4444',
+                            pointBorderColor: '#000000',
+                            pointBorderWidth: 2,
+                            tension: 0.2,
+                            spanGaps: true
+                        },
+                        {
+                            label: 'Physics',
+                            data: physicsScores,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#3b82f6',
+                            pointBorderColor: '#000000',
+                            pointBorderWidth: 2,
+                            tension: 0.2,
+                            spanGaps: true
+                        },
+                        {
+                            label: 'Chemistry',
+                            data: chemScores,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#10b981',
+                            pointBorderColor: '#000000',
+                            pointBorderWidth: 2,
+                            tension: 0.2,
+                            spanGaps: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#09090b',
+                            titleColor: '#f4f4f5',
+                            bodyColor: '#a1a1aa',
+                            borderColor: '#27272a',
+                            borderWidth: 1,
+                            padding: 10,
+                            callbacks: {
+                                title: function(context) {
+                                    return `Paper #${context[0].label}`;
+                                },
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            ticks: { color: '#a1a1aa', stepSize: 20 },
+                            grid: { color: '#18181b' }
+                        },
+                        x: {
+                            title: { display: true, text: 'Paper Number', color: '#71717a', font: { size: 11, weight: 'bold' } },
+                            ticks: { color: '#a1a1aa' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderSubjectTab(subjectFullName, prefix) {
+            const subExams = state.exams.filter(e => e.subject === subjectFullName).sort((a, b) => new Date(a.date) - new Date(b.date));
+            const tbody = document.getElementById(`${prefix}-list-tbody`);
+            tbody.innerHTML = '';
+
+            const stats = calculateSubjectStats(subjectFullName);
+            const avgEl = document.getElementById(`${prefix}-tab-avg`);
+            const bestEl = document.getElementById(`${prefix}-tab-best`);
+            const gradeEl = document.getElementById(`${prefix}-tab-grade`);
+            
+            if (avgEl) avgEl.textContent = stats.count > 0 ? `${stats.latestScore}%` : '0.0%';
+            if (bestEl) bestEl.textContent = stats.count > 0 ? `Highest: ${stats.highestScore}%` : 'Highest: -';
+            if (gradeEl) {
+                gradeEl.textContent = stats.count > 0 ? `Grade ${stats.latestGrade.grade}` : '-';
+                gradeEl.className = `inline-block text-xs font-black px-2.5 py-0.5 rounded ${stats.latestGrade.class}`;
+            }
+
+            if (subExams.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-zinc-500 text-xs">No paper marks logged for ${subjectFullName} yet. Use the form below to add your first mark!</td></tr>`;
+            } else {
+                subExams.forEach(ex => {
+                    const grade = getALGrade(ex.score);
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-zinc-800/50 transition';
+                    tr.innerHTML = `
+                        <td class="p-3 font-bold text-white">${ex.title}</td>
+                        <td class="p-3 text-zinc-400">${ex.type || 'Paper'}</td>
+                        <td class="p-3 text-zinc-400 text-xs">${ex.date}</td>
+                        <td class="p-3 text-center font-bold text-zinc-200">${ex.score} / 100</td>
+                        <td class="p-3 text-center font-extrabold text-white">${ex.score}%</td>
+                        <td class="p-3 text-center">
+                            <span class="inline-block text-[10px] font-black px-2 py-0.5 rounded ${grade.class}">${grade.grade}</span>
+                        </td>
+                        <td class="p-3 text-right">
+                            <button onclick="deleteMark('${ex.id}')" class="text-zinc-500 hover:text-rose-400 transition p-1" title="Delete Mark">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Render Single Subject Trajectory Hybrid Bar + Connecting Line Chart
+            renderSingleSubjectChart(subjectFullName, prefix, subExams);
+        }
+
+        function renderSingleSubjectChart(subjectFullName, prefix, subExams) {
+            const ctx = document.getElementById(`${prefix}Chart`)?.getContext('2d');
+            if (!ctx) return;
+
+            let color = '#ef4444';
+            let barBg = 'rgba(239, 68, 68, 0.35)';
+            if (prefix === 'physics') {
+                color = '#3b82f6';
+                barBg = 'rgba(59, 130, 246, 0.35)';
+            }
+            if (prefix === 'chemistry') {
+                color = '#10b981';
+                barBg = 'rgba(16, 185, 129, 0.35)';
+            }
+
+            const chartInstanceMap = {
+                maths: mathsChart,
+                physics: physicsChart,
+                chemistry: chemistryChart
+            };
+
+            if (chartInstanceMap[prefix]) {
+                chartInstanceMap[prefix].destroy();
+            }
+
+            const scores = subExams.map(e => Number(e.score));
+
+            const newChart = new Chart(ctx, {
+                data: {
+                    labels: subExams.map((_, idx) => `${idx + 1}`),
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: `${subjectFullName} Score Bar`,
+                            data: scores,
+                            backgroundColor: barBg,
+                            borderColor: color,
+                            borderWidth: 1.5,
+                            borderRadius: 6,
+                            barPercentage: 0.3, // Slender bars for visual clarity
+                            categoryPercentage: 0.6
+                        },
+                        {
+                            type: 'line',
+                            label: `${subjectFullName} Progress Line`,
+                            data: scores,
+                            borderColor: color,
+                            borderWidth: 3,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: color,
+                            pointBorderColor: '#000000',
+                            pointBorderWidth: 2,
+                            tension: 0.15, // Smooth line connecting top of every bar
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#09090b',
+                            titleColor: '#f4f4f5',
+                            bodyColor: '#a1a1aa',
+                            borderColor: '#27272a',
+                            borderWidth: 1,
+                            padding: 10,
+                            callbacks: {
+                                title: function(context) {
+                                    const index = context[0].dataIndex;
+                                    const ex = subExams[index];
+                                    return `Paper #${index + 1}: ${ex.title}`;
+                                },
+                                label: function(context) {
+                                    const index = context.dataIndex;
+                                    const ex = subExams[index];
+                                    return `Score: ${context.raw}/100 (${ex.date})`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            ticks: { color: '#a1a1aa', stepSize: 20 },
+                            grid: { color: '#18181b' }
+                        },
+                        x: {
+                            title: { display: true, text: 'Paper Number', color: '#71717a', font: { size: 11, weight: 'bold' } },
+                            ticks: { color: '#a1a1aa' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            if (prefix === 'maths') mathsChart = newChart;
+            if (prefix === 'physics') physicsChart = newChart;
+            if (prefix === 'chemistry') chemistryChart = newChart;
+        }
+
+        function handleAddMarks(event, subjectFullName) {
+            event.preventDefault();
+
+            let prefix = 'maths';
+            if (subjectFullName === 'Physics') prefix = 'physics';
+            if (subjectFullName === 'Chemistry') prefix = 'chemistry';
+
+            const titleInput = document.getElementById(`${prefix}-input-title`);
+            const typeInput = document.getElementById(`${prefix}-input-type`);
+            const scoreInput = document.getElementById(`${prefix}-input-score`);
+            const dateInput = document.getElementById(`${prefix}-input-date`);
+
+            const title = titleInput.value.trim();
+            const type = typeInput.value;
+            const score = parseFloat(scoreInput.value);
+            const date = dateInput.value;
+
+            if (!title || isNaN(score) || score < 0 || score > 100) {
+                return;
+            }
+
+            const newEntry = {
+                id: Date.now().toString(),
+                subject: subjectFullName,
+                title,
+                type,
+                date,
+                score
+            };
+
+            state.exams.push(newEntry);
+            saveState();
+
+            // Clear title & score input
+            titleInput.value = '';
+            scoreInput.value = '';
+
+            renderAll();
+        }
+
+        function deleteMark(id) {
+            state.exams = state.exams.filter(e => e.id !== id);
+            saveState();
+            renderAll();
+        }
+
+        function renderDeltaBadge(elementId, stats) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+
+            if (stats.count === 0) {
+                el.innerHTML = `<span class="text-zinc-500 text-[11px]"><i class="fa-solid fa-minus text-zinc-600 mr-1"></i> No papers logged</span>`;
+            } else if (!stats.hasPrev) {
+                el.innerHTML = `<span class="text-zinc-400 text-[11px]"><i class="fa-solid fa-flag-checkered text-zinc-500 mr-1"></i> First paper recorded</span>`;
+            } else if (stats.diff > 0) {
+                el.innerHTML = `
+                    <span class="text-emerald-400 text-[11px] font-extrabold flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrow-trend-up"></i> +${stats.diff} marks gained
+                    </span>
+                    <span class="text-zinc-500 text-[10px] font-medium">prev ${stats.prevScore}%</span>
+                `;
+            } else if (stats.diff < 0) {
+                const lost = Math.abs(stats.diff);
+                el.innerHTML = `
+                    <span class="text-rose-400 text-[11px] font-extrabold flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrow-trend-down"></i> -${lost} marks lost
+                    </span>
+                    <span class="text-zinc-500 text-[10px] font-medium">prev ${stats.prevScore}%</span>
+                `;
+            } else {
+                el.innerHTML = `
+                    <span class="text-zinc-300 text-[11px] font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-equals text-zinc-500"></i> No change
+                    </span>
+                    <span class="text-zinc-500 text-[10px] font-medium">prev ${stats.prevScore}%</span>
+                `;
+            }
+        }
+
+        function resetDataPrompt() {
+            if (window.confirm("Clear all logged marks and reset to default?")) {
+                localStorage.removeItem('al_amoled_marks_data');
+                state.exams = [];
+                renderAll();
+            }
+        }
+
+        function exportDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.exams, null, 2));
+            const anchor = document.createElement('a');
+            anchor.setAttribute("href", dataStr);
+            anchor.setAttribute("download", `AL_Marks_Backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+        }
+
+        function openInstallModal() {
+            const modal = document.getElementById('install-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeInstallModal() {
+            const modal = document.getElementById('install-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
